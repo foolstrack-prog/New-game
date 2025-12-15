@@ -30,7 +30,7 @@ function updateDisplay() {
     document.getElementById('levelDisplay').textContent = level;
 }
 
-// --- CLASS DEFINITIONS ---
+// --- CLASS DEFINITIONS (Player, Bullet, Platform, Alien classes remain the same) ---
 
 // 1. Player Class
 class Player {
@@ -56,11 +56,13 @@ class Player {
 
         // Apply Movement
         this.velocityX = 0;
-        if (keys['a'] || keys['ArrowLeft']) {
+        // Check for 'a'/'ArrowLeft' keys OR 'left' control state
+        if (keys['a'] || keys['ArrowLeft'] || keys['control_left']) {
             this.velocityX = -PLAYER_SPEED;
             this.facing = 'left';
         }
-        if (keys['d'] || keys['ArrowRight']) {
+        // Check for 'd'/'ArrowRight' keys OR 'right' control state
+        if (keys['d'] || keys['ArrowRight'] || keys['control_right']) {
             this.velocityX = PLAYER_SPEED;
             this.facing = 'right';
         }
@@ -139,7 +141,7 @@ class Player {
     }
 }
 
-// 2. Bullet Class
+// 2. Bullet Class (No change)
 class Bullet {
     constructor(x, y, direction) {
         this.x = x;
@@ -164,7 +166,7 @@ class Bullet {
     }
 }
 
-// 3. Platform Class
+// 3. Platform Class (No change)
 class Platform {
     constructor(x, y, width, height) {
         this.x = x;
@@ -180,7 +182,7 @@ class Platform {
     }
 }
 
-// 4. Enemy Class (Alien)
+// 4. Enemy Class (Alien) (No change)
 class Alien {
     constructor(x, y) {
         this.x = x;
@@ -211,7 +213,7 @@ class Alien {
     }
 }
 
-// --- LEVEL SETUP ---
+// --- LEVEL SETUP (No change) ---
 function loadLevel(levelNum) {
     bullets = [];
     enemies = [];
@@ -239,7 +241,7 @@ function loadLevel(levelNum) {
 const player = new Player(50, canvas.height - 40);
 loadLevel(1);
 
-// --- INPUT HANDLER ---
+// --- INPUT HANDLER (Keyboard) ---
 document.addEventListener('keydown', (e) => {
     keys[e.key.toLowerCase()] = true;
     if (e.key === ' ' || e.key === 'w' || e.key === 'ArrowUp') {
@@ -253,73 +255,51 @@ document.addEventListener('keyup', (e) => {
     keys[e.key.toLowerCase()] = false;
 });
 
-// --- MAIN GAME LOOP FUNCTIONS ---
+// --- INPUT HANDLER (Mobile Touch Controls) ---
 
-function updateGame() {
-    // 1. Update Player
-    player.update();
+const leftBtn = document.getElementById('left-btn');
+const rightBtn = document.getElementById('right-btn');
+const jumpBtn = document.getElementById('jump-btn');
+const shootBtn = document.getElementById('shoot-btn');
 
-    // 2. Update Bullets and handle Enemy Collision
-    bullets.forEach((bullet, bIndex) => {
-        bullet.update();
-        enemies.forEach((enemy, eIndex) => {
-            if (bullet.isAlive && checkCollision(bullet, enemy)) {
-                bullet.isAlive = false; // Bullet is destroyed
-                if (enemy.takeDamage()) {
-                    enemies.splice(eIndex, 1); // Remove defeated enemy
-                }
-            }
-        });
-    });
-    // Clean up dead bullets
-    bullets = bullets.filter(bullet => bullet.isAlive);
-
-    // 3. Enemy-Player Collision (Player takes damage)
-    enemies.forEach(enemy => {
-        if (checkCollision(player, enemy)) {
-            // Simple damage model: lose health and push back
-            player.health -= 1;
-            player.x += (player.facing === 'right' ? -10 : 10);
-        }
+// Helper to handle touch/mouse down/up events for movement
+function setupMovementButton(element, keyName) {
+    // Touch start and Mouse down
+    element.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        keys[keyName] = true;
+    }, { passive: false });
+    element.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        keys[keyName] = true;
     });
 
-    // 4. Update HUD
-    updateDisplay();
-
-    // 5. Level Completion Check (Simple: defeat all enemies)
-    if (enemies.length === 0 && level === 1) {
-        alert("Level 1 Complete! You beat the protoype!");
-        // To build the full game, you would increment 'level' here
-        // level++;
-        // loadLevel(level);
-    }
+    // Touch end and Mouse up
+    element.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        keys[keyName] = false;
+    }, { passive: false });
+    element.addEventListener('mouseup', (e) => {
+        e.preventDefault();
+        keys[keyName] = false;
+    });
+    // Handle touch moving off the button
+    element.addEventListener('touchcancel', (e) => {
+        keys[keyName] = false;
+    });
 }
 
-function drawGame() {
-    // Clear canvas
-    ctx.fillStyle = '#111122'; // Background Color
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+setupMovementButton(leftBtn, 'control_left');
+setupMovementButton(rightBtn, 'control_right');
 
-    // Draw Platforms
-    platforms.forEach(p => p.draw());
 
-    // Draw Player
-    player.draw();
-
-    // Draw Bullets
-    bullets.forEach(b => b.draw());
-
-    // Draw Enemies
-    enemies.forEach(e => e.draw());
-}
-
-// --- GAME LOOP ---
-function gameLoop() {
-    updateGame();
-    drawGame();
-    requestAnimationFrame(gameLoop);
-}
-
-// Start the game!
-updateDisplay();
-gameLoop();
+// Jump and Shoot buttons (Taps/Clicks)
+jumpBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    player.jump();
+});
+jumpBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    // Only call jump if it wasn't already triggered by the click/tap (to avoid double jump on some devices)
+    // The player.jump() has its own check for isGrounded, so a simple call is fine.
+    player.jump
